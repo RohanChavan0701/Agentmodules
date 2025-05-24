@@ -2,6 +2,7 @@ from langchain.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 from finscraper.scraper_tool.tool import get_stock_info_tool, stock_data_tool, stock_news_tool
 from langchain_core.runnables import RunnablePassthrough
+from typing import Dict
 
 from dotenv import load_dotenv
 import os
@@ -61,35 +62,62 @@ llm = ChatOpenAI(
 chain = prompt | llm
 
 
-def get_recommendation(ticker: str, tone: str = "formal") -> str:
-    # Step 1: Fetch both stock data and news
-    financial_data = stock_data_tool.run(ticker)
-    news_data = stock_news_tool.run(ticker)
+def get_recommendation(ticker: str, tone: str = "formal") -> Dict:
+    """
+    Get stock recommendation with error handling.
 
-    # Step 2: Call the chain with both
-    result = chain.invoke({
-        "ticker": ticker,
-        "financial_data": financial_data,
-        "news_data": news_data,
-        "tone": tone
-    })
+    Args:
+        ticker (str): Stock ticker symbol (e.g., 'AAPL', 'TSLA')
+        tone (str, optional): Analysis tone ('formal', 'conversational', 'direct'). Defaults to "formal".
 
-    return result.content
+    Returns:
+        Dict: Analysis result with the following structure:
+        {
+            "ticker": str,
+            "tone": str,
+            "recommendation": str,  # "Buy" or "Sell"
+            "analysis": str,        # Full analysis text
+            "confidence": int,      # Confidence score (0-100)
+            "status": str          # "success" or "error"
+            "error": str          # Only present if status is "error"
+        }
+    """
+    try:
+        # Step 1: Fetch both stock data and news
+        financial_data = stock_data_tool.run(ticker)
+        news_data = stock_news_tool.run(ticker)
 
+        # Step 2: Call the chain with both
+        result = chain.invoke({
+            "ticker": ticker,
+            "financial_data": financial_data,
+            "news_data": news_data,
+            "tone": tone
+        })
 
-if __name__ == "__main__":
-    # Let's analyze multiple stocks with different tones
-    stocks_and_tones = [
-        ("TSLA", "conversational"),
-        ("AAPL", "formal"),
-        ("MSFT", "direct")
-    ]
+        # Parse the result to extract key information
+        content = result.content
+        recommendation = "Buy" if "Buy" in content.split("\n")[0] else "Sell"
 
-    for ticker, tone in stocks_and_tones:
-        print(f"\n{'=' * 50}")
-        print(f"Analyzing {ticker} in {tone} tone:")
-        print(f"{'=' * 50}\n")
-        print(get_recommendation(ticker, tone))
-        print()
+        # Extract confidence score
+        confidence_line = [line for line in content.split("\n") if "Confidence Score" in line][0]
+        confidence = int(confidence_line.split("%")[0].split("**")[-1].strip())
+
+        return {
+            "ticker": ticker,
+            "tone": tone,
+            "recommendation": recommendation,
+            "analysis": content,
+            "confidence": confidence,
+            "status": "success"
+        }
+    except Exception as e:
+        return {
+            "ticker": ticker,
+            "tone": tone,
+            "status": "error",
+            "error": str(e)
+        }
+
 
 

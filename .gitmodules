@@ -1,0 +1,3 @@
+[submodule "finscraper"]
+	path = finscraper
+	url = https://github.com/ForgottenLight4415/finscraper.git

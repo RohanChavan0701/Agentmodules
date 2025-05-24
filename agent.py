@@ -22,6 +22,7 @@ recommendation_chain = LLMChain(
     llm=llm,
     prompt=prompt_template
 )
+#code changed
 
 
 def get_recommendation(ticker: str, tone: str = "formal") -> str:

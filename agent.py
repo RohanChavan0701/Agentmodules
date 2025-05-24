@@ -3,7 +3,7 @@ from langchain_openai import ChatOpenAI
 from finscraper.scraper_tool.tool import get_stock_info_tool, stock_data_tool, stock_news_tool
 from langchain_core.runnables import RunnablePassthrough
 from typing import Dict
-
+import re
 from dotenv import load_dotenv
 import os
 
@@ -37,7 +37,7 @@ Then generate a clear recommendation **with justification**.
 
 ---
 
-Respond in a {tone} tone. Be concise but insightful.
+Respond in a {tone} tone. Be insightful.
 
 Your answer must include:
 1. 📌 **Your Recommendation** — either "Buy" or "Sell"
@@ -103,11 +103,14 @@ def get_recommendation(ticker: str, tone: str = "formal") -> Dict:
         confidence_line = [line for line in content.split("\n") if "Confidence Score" in line][0]
         confidence = int(confidence_line.split("%")[0].split("**")[-1].strip())
 
+        # Extract justification
+        just_match = re.search(r"Justification:\s*(.*?)\n(?:Confidence Score:|$)", content, re.DOTALL)
+        justification = just_match.group(1).strip() if just_match else "Justification not found."
+
         return {
             "ticker": ticker,
             "tone": tone,
             "recommendation": recommendation,
-            "analysis": content,
             "confidence": confidence,
             "status": "success"
         }
@@ -118,6 +121,5 @@ def get_recommendation(ticker: str, tone: str = "formal") -> Dict:
             "status": "error",
             "error": str(e)
         }
-
 
 

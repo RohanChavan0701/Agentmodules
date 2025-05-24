@@ -153,10 +153,3 @@ def run_full_analysis(ticker: str, tone: str = "formal", use_mock: bool = False)
         "heuristic_flags": verifier_result.get("heuristic_flags", [])
     }
 
-if __name__ == "__main__":
-    ticker = input("Enter ticker symbol (e.g., TSLA): ").upper()
-    output = run_full_analysis(ticker=ticker, tone="formal", use_mock=False)
-
-    import json
-    print("\n📦 FULL OUTPUT:")
-    print(json.dumps(output, indent=2))
